@@ -5,23 +5,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-extrabold cursor-pointer transition-all active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default:
+          "bg-primary text-primary-foreground border-2 border-primary-deep/70 hover:brightness-[1.03]",
+        destructive:
+          "bg-destructive text-destructive-foreground border-2 border-destructive hover:bg-destructive/90",
+        outline: "bg-card text-foreground border-2 border-border hover:bg-muted/60",
+        secondary: "bg-primary-soft text-foreground border-2 border-primary/40 hover:bg-primary/40",
+        chip: "bg-card text-accent border-2 border-lavender hover:bg-accent/5 font-extrabold",
+        google:
+          "bg-google-surface text-google-ink border border-google-border font-bold hover:bg-muted/40",
+        ghost: "text-foreground hover:bg-muted/70",
+        link: "text-accent underline underline-offset-4 hover:opacity-80 rounded-md",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-12 px-5 text-base",
+        sm: "h-10 px-4 text-sm",
+        lg: "h-14 px-6 text-lg w-full",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

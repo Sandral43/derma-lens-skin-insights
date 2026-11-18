@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794971647928,
+      "tag": "0000_dermalens_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794971816009,
+      "tag": "0001_coin_total",
+      "breakpoints": true
+    }
+  ]
+}
