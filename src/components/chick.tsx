@@ -46,8 +46,8 @@ export function Chick({
       )}
       {mood === "concerned" && (
         <>
-          <path d="M66 84 L 88 90" strokeWidth="5" strokeLinecap="round" className="stroke-foreground" />
-          <path d="M134 84 L 112 90" strokeWidth="5" strokeLinecap="round" className="stroke-foreground" />
+          <path d="M66 90 L 88 82" strokeWidth="5" strokeLinecap="round" className="stroke-foreground" />
+          <path d="M134 90 L 112 82" strokeWidth="5" strokeLinecap="round" className="stroke-foreground" />
         </>
       )}
       <path d="M88 114 L 112 114 L 100 130 Z" strokeLinejoin="round" strokeWidth="3" className="fill-chick-beak stroke-chick-beak" />

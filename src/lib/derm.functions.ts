@@ -64,61 +64,118 @@ export const findDermatologists = createServerFn({ method: "POST" })
         };
       }
 
-      const meters = Math.round(data.radiusMiles * 1609.34);
-      const around = `(around:${meters},${center.lat},${center.lon})`;
-      const query = `[out:json][timeout:20];
-(
-  nwr["healthcare:speciality"~"dermatology",i]${around};
-  nwr["amenity"~"doctors|clinic"]["name"~"derm|skin",i]${around};
-  nwr["healthcare"~"doctor|clinic"]["name"~"derm|skin",i]${around};
-);
-out center 60;`;
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(query)}`,
-      });
-      if (!res.ok) return { ok: false, error: "The map directory is busy. Please try again in a moment." };
-      const json = (await res.json()) as {
-        elements: Array<{
-          type: string;
-          id: number;
-          lat?: number;
-          lon?: number;
-          center?: { lat: number; lon: number };
-          tags?: Record<string, string>;
-        }>;
-      };
-
-      const seen = new Set<string>();
-      const results: Dermatologist[] = [];
-      for (const el of json.elements ?? []) {
-        const tags = el.tags ?? {};
-        const lat = el.lat ?? el.center?.lat;
-        const lon = el.lon ?? el.center?.lon;
-        const name = tags["name"];
-        if (!name || lat === undefined || lon === undefined) continue;
-        const key = name.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const street = [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" ");
-        const address = [street, tags["addr:city"]].filter(Boolean).join(", ") || null;
-        results.push({
-          id: `${el.type}-${el.id}`,
-          name,
-          clinic: tags["operator"] ?? tags["healthcare:speciality"]?.replace(/;/g, ", ") ?? null,
-          address,
-          phone: tags["phone"] ?? tags["contact:phone"] ?? null,
-          website: tags["website"] ?? tags["contact:website"] ?? null,
-          lat,
-          lon,
-          distanceMiles: Math.round(haversineMiles(center, { lat, lon }) * 10) / 10,
-        });
-      }
-      results.sort((a, b) => a.distanceMiles - b.distanceMiles);
-      return { ok: true, center, results: results.slice(0, 12) };
+      // Query both public sources at once; either may be slow or busy.
+      const [fromOverpass, fromNominatim] = await Promise.all([
+        searchOverpass(center, data.radiusMiles).catch((e) => {
+          console.warn("overpass unavailable", e);
+          return [] as Dermatologist[];
+        }),
+        searchNominatim(center, data.radiusMiles).catch(() => [] as Dermatologist[]),
+      ]);
+      const results = [...fromOverpass];
+      const names = new Set(results.map((r) => r.name.toLowerCase()));
+      for (const r of fromNominatim) if (!names.has(r.name.toLowerCase())) results.push(r);
+      const within = results.filter((r) => r.distanceMiles <= data.radiusMiles + 0.5);
+      within.sort((a, b) => a.distanceMiles - b.distanceMiles);
+      return { ok: true, center, results: within.slice(0, 12) };
     } catch (error) {
       console.error("findDermatologists failed", error);
       return { ok: false, error: "Something went wrong while searching. Please try again." };
     }
   });
+
+type Center = { lat: number; lon: number };
+
+async function searchOverpass(center: Center, radiusMiles: number): Promise<Dermatologist[]> {
+  const meters = Math.round(radiusMiles * 1609.34);
+  const around = `(around:${meters},${center.lat},${center.lon})`;
+  const query = `[out:json][timeout:8];
+(
+  nwr["healthcare:speciality"~"dermatology"]${around};
+  nwr["amenity"~"^(doctors|clinic)$"]["name"~"[Dd]erm"]${around};
+);
+out center 60;`;
+  const res = await fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    headers: { "User-Agent": UA, Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+    body: `data=${encodeURIComponent(query)}`,
+    signal: AbortSignal.timeout(9000),
+  });
+  if (!res.ok) throw new Error(`overpass ${res.status}`);
+  const json = (await res.json()) as {
+    elements?: Array<{
+      type: string;
+      id: number;
+      lat?: number;
+      lon?: number;
+      center?: { lat: number; lon: number };
+      tags?: Record<string, string>;
+    }>;
+  };
+  const seen = new Set<string>();
+  const out: Dermatologist[] = [];
+  for (const el of json.elements ?? []) {
+    const tags = el.tags ?? {};
+    const lat = el.lat ?? el.center?.lat;
+    const lon = el.lon ?? el.center?.lon;
+    const name = tags["name"];
+    if (!name || lat === undefined || lon === undefined) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const street = [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" ");
+    out.push({
+      id: `${el.type}-${el.id}`,
+      name,
+      clinic: tags["operator"] ?? null,
+      address: [street, tags["addr:city"]].filter(Boolean).join(", ") || null,
+      phone: tags["phone"] ?? tags["contact:phone"] ?? null,
+      website: tags["website"] ?? tags["contact:website"] ?? null,
+      lat,
+      lon,
+      distanceMiles: Math.round(haversineMiles(center, { lat, lon }) * 10) / 10,
+    });
+  }
+  return out;
+}
+
+async function searchNominatim(center: Center, radiusMiles: number): Promise<Dermatologist[]> {
+  const dLat = radiusMiles / 69;
+  const dLon = radiusMiles / (69 * Math.cos((center.lat * Math.PI) / 180));
+  const viewbox = [center.lon - dLon, center.lat + dLat, center.lon + dLon, center.lat - dLat].join(",");
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&extratags=1&addressdetails=1&bounded=1&viewbox=${viewbox}&q=dermatology`,
+    { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(9000) },
+  );
+  if (!res.ok) return [];
+  const rows = (await res.json()) as Array<{
+    osm_type: string;
+    osm_id: number;
+    lat: string;
+    lon: string;
+    name: string;
+    category: string;
+    extratags?: Record<string, string> | null;
+    address?: Record<string, string>;
+  }>;
+  return rows
+    .filter((r) => r.name && ["amenity", "healthcare", "building", "office"].includes(r.category))
+    .map((r) => {
+      const lat = Number(r.lat);
+      const lon = Number(r.lon);
+      const a = r.address ?? {};
+      const street = [a["house_number"], a["road"]].filter(Boolean).join(" ");
+      const city = a["city"] ?? a["town"] ?? a["village"] ?? a["suburb"];
+      return {
+        id: `${r.osm_type}-${r.osm_id}`,
+        name: r.name,
+        clinic: null,
+        address: [street, city].filter(Boolean).join(", ") || null,
+        phone: r.extratags?.["phone"] ?? r.extratags?.["contact:phone"] ?? null,
+        website: r.extratags?.["website"] ?? r.extratags?.["contact:website"] ?? null,
+        lat,
+        lon,
+        distanceMiles: Math.round(haversineMiles(center, { lat, lon }) * 10) / 10,
+      };
+    });
+}

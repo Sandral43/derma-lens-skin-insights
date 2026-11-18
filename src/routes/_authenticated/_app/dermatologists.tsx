@@ -102,7 +102,7 @@ function DermPage() {
           />
         </label>
         <Button type="button" className="h-14 shrink-0 px-4" onClick={useLocation} disabled={locating}>
-          <LocateFixed /> {locating ? "…" : "Use my location"}
+          <LocateFixed /> {locating ? "…" : "Near me"}
         </Button>
       </form>
       <p className="mt-2 text-sm font-semibold text-muted-foreground">Your location is used only for this search.</p>
@@ -118,7 +118,7 @@ function DermPage() {
               if (data) runSearch(r);
             }}
             className={cn(
-              "h-12 rounded-full border-2 px-5 text-base font-extrabold",
+              "h-12 whitespace-nowrap rounded-full border-2 px-4 text-base font-extrabold",
               radius === r ? "border-primary-deep/50 bg-primary" : "border-border bg-card",
             )}
           >
