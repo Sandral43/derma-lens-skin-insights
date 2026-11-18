@@ -16,7 +16,7 @@ export function PageHeader({ title, back = true, right }: { title: ReactNode; ba
           <ChevronLeft className="h-7 w-7" strokeWidth={2.6} />
         </button>
       )}
-      <h1 className="flex-1 text-[1.9rem] font-black leading-tight">{title}</h1>
+      <h1 className="flex-1 text-[1.75rem] font-black leading-tight">{title}</h1>
       {right}
     </header>
   );

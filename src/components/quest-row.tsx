@@ -35,20 +35,20 @@ export function QuestRow({ quest, done, dateKey }: { quest: Quest; done: boolean
       aria-label={`${quest.title}${quest.product ? `, ${quest.product}` : ""}, ${quest.reward} coins`}
       onClick={onClick}
       className={cn(
-        "card-cozy flex w-full items-center gap-4 px-4 py-4 text-left transition-colors",
+        "card-cozy flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
         isDone && "bg-mint/40",
       )}
     >
-      <QuestIcon icon={quest.icon} />
+      <QuestIcon icon={quest.icon} className="h-12 w-12" />
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-lg font-black", isDone && "line-through decoration-2 opacity-70")}>
+        <span className={cn("block text-lg font-black leading-tight", isDone && "line-through decoration-2 opacity-70")}>
           {quest.title}
         </span>
         {quest.product && (
           <span className="block truncate font-semibold text-muted-foreground">{quest.product}</span>
         )}
       </span>
-      <span className="relative flex items-center gap-1.5 font-black">
+      <span className="relative flex shrink-0 items-center gap-1 font-black">
         <Coin />+{quest.reward}
         {burst > 0 && isDone && (
           <span key={burst} aria-hidden className="absolute -top-3 left-0 animate-coin text-sm font-black text-coin-edge">
@@ -58,7 +58,7 @@ export function QuestRow({ quest, done, dateKey }: { quest: Quest; done: boolean
       </span>
       <span
         className={cn(
-          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[3px] transition-colors",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[3px] transition-colors",
           isDone ? "border-success bg-success text-success-foreground" : "border-success/70",
         )}
       >
